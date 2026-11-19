@@ -78,6 +78,42 @@ class Token(BaseModel):
 # ======== OAUTH2 SCHEME ========
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+
+# ========= FROM ROBOTS ===============
+from fastapi.middleware.cors import CORSMiddleware
+collection = db["robots"]             # Collection name (not robots.json, just robots)
+
+# Optional: enable CORS if you’ll connect from React/React Native
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],    # or specify your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Minimal Pydantic model ---
+class Robot(BaseModel):
+    name: str
+    price: float
+    description: str
+    imageUrl: str
+
+# --- Get all robots ---
+@app.get("/robots")
+def get_robots():
+    robots = list(collection.find())   # Retrieve all documents
+    for r in robots:
+        r["_id"] = str(r["_id"])        # Convert ObjectId to string
+    return robots
+# --- Add robot ---
+@app.post("/robots")
+def add_robot(robot: Robot):
+    collection.insert_one(robot.model_dump())
+    return {"message": "Robot added successfully"}
+
+
+
 # ======== JWT HELPERS ========
 def create_jwt_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
